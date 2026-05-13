@@ -7,6 +7,7 @@ internal static class ParameterDescriptions {
 	public const string Account = "AWS account name";
 	public const string Role = "AWS role name";
 	public const string Duration = "AWS session duration in minutes";
+	public const string Timeout = "Seconds to wait for Okta Authentication";
 	public const string Profile = "AWS profile name";
 	public const string Output =
 		"Custom path to the AWS credentials file, or the AWS config file if '--use-credential-process' is supplied";

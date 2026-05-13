@@ -17,11 +17,15 @@ var orgOption = new Option<string>(
 var userOption = new Option<string>(
 	name: "--user",
 	description: ParameterDescriptions.User );
+var timeoutOption = new Option<int?>(
+	name: "--timeout",
+	description: ParameterDescriptions.Timeout );
 
 // bmx login
 var loginCommand = new Command( "login", "Log into Okta and save an Okta session" ) {
 	orgOption,
 	userOption,
+	timeoutOption
 };
 loginCommand.SetHandler( ( InvocationContext context ) => {
 	var messageWriter = new MessageWriter();
@@ -36,7 +40,8 @@ loginCommand.SetHandler( ( InvocationContext context ) => {
 	) );
 	return handler.HandleAsync(
 		org: context.ParseResult.GetValueForOption( orgOption ),
-		user: context.ParseResult.GetValueForOption( userOption )
+		user: context.ParseResult.GetValueForOption( userOption ),
+		timeoutInSeconds: context.ParseResult.GetValueForOption( timeoutOption )
 	);
 } );
 
@@ -115,6 +120,7 @@ var printCommand = new Command( "print", "Print AWS credentials" ) {
 	accountOption,
 	roleOption,
 	durationOption,
+	timeoutOption,
 	formatOption,
 	orgOption,
 	userOption,
@@ -149,7 +155,8 @@ printCommand.SetHandler( ( InvocationContext context ) => {
 		duration: context.ParseResult.GetValueForOption( durationOption ),
 		nonInteractive: context.ParseResult.GetValueForOption( nonInteractiveOption ),
 		format: context.ParseResult.GetValueForOption( formatOption ),
-		cacheAwsCredentials: context.ParseResult.GetValueForOption( cacheAwsCredentialsOption )
+		cacheAwsCredentials: context.ParseResult.GetValueForOption( cacheAwsCredentialsOption ),
+		timeoutInSeconds: context.ParseResult.GetValueForOption( timeoutOption )
 	);
 } );
 
@@ -169,6 +176,7 @@ var writeCommand = new Command( "write", "Write AWS credentials to the credentia
 	roleOption,
 	profileOption,
 	durationOption,
+	timeoutOption,
 	outputOption,
 	orgOption,
 	userOption,
@@ -210,7 +218,8 @@ writeCommand.SetHandler( ( InvocationContext context ) => {
 		output: context.ParseResult.GetValueForOption( outputOption ),
 		profile: context.ParseResult.GetValueForOption( profileOption ),
 		cacheAwsCredentials: context.ParseResult.GetValueForOption( cacheAwsCredentialsOption ),
-		useCredentialProcess: context.ParseResult.GetValueForOption( useCredentialProcessOption )
+		useCredentialProcess: context.ParseResult.GetValueForOption( useCredentialProcessOption ),
+		timeoutInSeconds: context.ParseResult.GetValueForOption( timeoutOption )
 	);
 } );
 

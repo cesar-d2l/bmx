@@ -27,13 +27,15 @@ internal class WriteHandler(
 		string? output,
 		string? profile,
 		bool cacheAwsCredentials,
-		bool useCredentialProcess
+		bool useCredentialProcess,
+		int? timeoutInSeconds
 	) {
 		cacheAwsCredentials = cacheAwsCredentials || useCredentialProcess;
 
 		var oktaContext = await oktaAuth.AuthenticateAsync(
 			org: org,
 			user: user,
+			timeoutInSeconds: timeoutInSeconds,
 			nonInteractive: nonInteractive,
 			ignoreCache: false
 		);

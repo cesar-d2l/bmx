@@ -19,9 +19,12 @@ internal class OktaAuthenticator(
 	IMessageWriter messageWriter,
 	BmxConfig config
 ) {
+	private static readonly TimeSpan DefaultInitialPageLoadTimeout = TimeSpan.FromSeconds( 6 );
+	private static readonly TimeSpan DefaultPageLoadTimeout = TimeSpan.FromSeconds( 6 );
 	public async Task<OktaAuthenticatedContext> AuthenticateAsync(
 		string? org,
 		string? user,
+		int? timeoutInSeconds,
 		bool nonInteractive,
 		bool ignoreCache
 	) {
@@ -37,6 +40,14 @@ internal class OktaAuthenticator(
 			org = consolePrompter.PromptOrg( allowEmptyInput: false );
 		} else if( !nonInteractive ) {
 			messageWriter.WriteParameter( ParameterDescriptions.Org, org, orgSource );
+		}
+
+		TimeSpan? timeout = null;
+		if( timeoutInSeconds is not null ) {
+			if( timeoutInSeconds <= 0 ) {
+				throw new BmxException( "Invalid timeout" );
+			}
+			timeout = TimeSpan.FromSeconds( timeoutInSeconds.Value );
 		}
 
 		var userSource = ParameterSource.CliArg;
@@ -71,7 +82,8 @@ internal class OktaAuthenticator(
 			oktaAuthenticated = await GetDssoAuthenticatedClientAsync(
 				orgUrl,
 				user,
-				browserPath
+				browserPath,
+				timeout
 			);
 			if( oktaAuthenticated is not null ) {
 				return new( Org: org, User: user, Client: oktaAuthenticated );
@@ -115,12 +127,13 @@ internal class OktaAuthenticator(
 	private async Task<IOktaAuthenticatedClient?> GetDssoAuthenticatedClientAsync(
 		Uri orgUrl,
 		string user,
-		string browserPath
+		string browserPath,
+		TimeSpan? timeout
 	) {
 		string? sessionId = null;
 
 		try {
-			sessionId = await GetSessionIdFromBrowserAsync( browserPath, orgUrl );
+			sessionId = await GetSessionIdFromBrowserAsync( browserPath, orgUrl, timeout );
 		} catch( TaskCanceledException ex ) {
 			if( BmxEnvironment.IsDebug ) {
 				messageWriter.WriteWarning( $"Okta passwordless authentication timed out. \n{ex}" );
@@ -151,7 +164,7 @@ internal class OktaAuthenticator(
 		return oktaAuthenticatedClient;
 	}
 
-	private async Task<string?> GetSessionIdFromBrowserAsync( string browserPath, Uri orgUrl ) {
+	private async Task<string?> GetSessionIdFromBrowserAsync( string browserPath, Uri orgUrl, TimeSpan? timeout ) {
 		if( BmxEnvironment.IsDebug ) {
 			messageWriter.WriteWarning( $"Launching browser: {browserPath}" );
 		}
@@ -164,7 +177,11 @@ internal class OktaAuthenticator(
 		cancellationTokenSource.Token.Register( () => sessionIdTcs.TrySetCanceled() );
 
 		// cancel if we can't load the first page for 6 seconds
-		using var pageTimer = new System.Timers.Timer( TimeSpan.FromSeconds( 6 ) ) { AutoReset = false };
+		using var pageTimer = new System.Timers.Timer(
+			timeout.HasValue ?
+				timeout.Value.TotalMilliseconds :
+				DefaultInitialPageLoadTimeout.TotalMilliseconds
+		) { AutoReset = false };
 		pageTimer.Elapsed += ( _, _ ) => cancellationTokenSource.Cancel();
 		pageTimer.Start();
 
@@ -187,7 +204,9 @@ internal class OktaAuthenticator(
 			lock( pageTimer ) {
 				pageTimer.Stop();
 				// we give the first page 6 sec to load, but 3 sec is probably enough for subsequent pages
-				pageTimer.Interval = 3000;
+				pageTimer.Interval = timeout.HasValue ?
+					timeout.Value.TotalMilliseconds :
+					DefaultPageLoadTimeout.TotalMilliseconds;
 				pageTimer.Start();
 			}
 

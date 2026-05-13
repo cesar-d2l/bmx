@@ -14,11 +14,13 @@ internal class PrintHandler(
 		int? duration,
 		bool nonInteractive,
 		string? format,
-		bool cacheAwsCredentials
+		bool cacheAwsCredentials,
+		int? timeoutInSeconds
 	) {
 		var oktaContext = await oktaAuth.AuthenticateAsync(
 			org: org,
 			user: user,
+			timeoutInSeconds: timeoutInSeconds,
 			nonInteractive: nonInteractive,
 			ignoreCache: false
 		);

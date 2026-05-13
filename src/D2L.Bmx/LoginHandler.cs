@@ -5,7 +5,8 @@ internal class LoginHandler(
 ) {
 	public async Task HandleAsync(
 		string? org,
-		string? user
+		string? user,
+		int? timeoutInSeconds
 	) {
 		if( !File.Exists( BmxPaths.CONFIG_FILE_NAME ) ) {
 			throw new BmxException(
@@ -15,6 +16,7 @@ internal class LoginHandler(
 		await oktaAuth.AuthenticateAsync(
 			org,
 			user,
+			timeoutInSeconds,
 			nonInteractive: false,
 			ignoreCache: true
 		);
